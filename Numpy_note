@@ -122,3 +122,11 @@ numpy.svd
 numpy.solve
 # 计算Ax=b的最小而成解
 numpy.lstsq
+
+# 读写文件
+x = np.random.rand(3,3)
+# 保存为npy文件
+np.save("x.npy",x)
+# 从磁盘文件读取
+np.load('x.npy')
+
