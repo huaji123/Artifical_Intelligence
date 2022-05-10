@@ -1,0 +1,87 @@
+# ndarray N维数组对象，同类型数据的集合
+
+1.numpy.array(object, dtype = None, copy = True, order = None, subok = False, ndmin = 0)
+
+# object:数组或嵌套的数列
+# dtype:数组元素的数据类型
+# copy:对象是否需要复制
+# order:创建数组的样式，C为行，F为列，A为任意方向
+# subok:默认返回一个与基类类型一致的数组
+# ndmin:指定生成数组的最小维度
+
+# 简单的加减乘除：add(),subtract(),multiply(),divide()
+# 注：数组必须具有相同的形状或符合数组广播规则
+numpy.add()
+numpy.subtract()
+numpy.multiply()
+numpy.divide()
+
+# 幂函数
+numpy.power()
+# 绝对值函数
+numpy.abs()
+
+# 输出从0到x-1的数组
+numpy.arange(start, stop, step)
+numpy.arange(-10, 10, 0.1)
+# num：点的个数
+numpy.linspace(start, stop, num)
+
+# 不改变数据的条件下修改形状
+# arr：要修改形状的数组
+# newshape：整数或者整数数组，新的形状应当兼容原有形状
+# order：'C' -- 按行，'F' -- 按列，'A' -- 原顺序，'k' -- 元素在内存中的出现顺序。
+numpy.reshape(arr, newshape, order="C")
+numpy.reshape(-1,2) # -1表示不知道shape是什么，让数据变成2列
+
+# 矩阵相乘，向量化
+numpy.dot(x,y) # 内积
+numpy.matmul(x,y) # 矩阵相乘
+
+# 导入数据集
+import pandas as pd
+dataset = pd.read_cvs('路径')
+
+# 对数据集进行提取
+
+datasets.iloc[ : , : ]
+
+# 前面的冒号就是取行数，后面的冒号是取列数
+# 左闭右开原则
+
+# 绘图
+import matplotlib.pyplot as plt
+# 图片标题
+plt.title('')
+# x轴变量名称
+plt.xlabel('')
+# y轴变量名称
+plt.ylabel('')
+# 逐点画出某个值，并连线
+plt.plot(,label="$$")
+plt.legend()
+plt.show()
+
+# 垂直(行)按顺序排序堆叠数组
+numpy.vstack()
+
+# 带参数时每次生成的随机数都相同
+np.random.seed(116)
+# 将x_train中的元素随机打乱, shuffle:洗牌
+random.shuffle(x_train)
+
+# 从文本或二进制文件中的数据构造一个数组
+numpy.fromfile(file,dtype=float,count=-1,sep='',offset=0)
+# file:文件名或路径
+# dtype：数据类型
+# count：需要读取的项目数
+# sep：
+# offset：与文件当前位置的偏移量
+
+# 查看矩阵或数组
+# numpy.shape[0]表示矩阵或数组的行数
+numpy.shape[0]
+
+# np.c 中的c 是 column(列)的缩写，
+# 就是按列叠加两个矩阵，就是把两个矩阵左右组合，要求行数相等。
+np.c_
