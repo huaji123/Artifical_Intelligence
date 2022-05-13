@@ -1,0 +1,46 @@
+# GoogLeNet模型代码
+import numpy as np
+import paddle
+from paddle.nn import Conv2D, MaxPool2D, AdaptiveAvgPool2D, Linear
+## 组网
+import paddle.nn.functional as F
+
+# 定义Inception块
+class Inception(paddle.nn.Layer):
+    def __init__(self, c0, c1, c2, c3, c4, **kwargs):
+        
+        '''
+        Inception模块的实现代码，
+        
+        c1,图(b)中第一条支路1x1卷积的输出通道数，数据类型是整数
+        c2,图(b)中第二条支路卷积的输出通道数，数据类型是tuple或list, 
+               其中c2[0]是1x1卷积的输出通道数，c2[1]是3x3
+        c3,图(b)中第三条支路卷积的输出通道数，数据类型是tuple或list, 
+               其中c3[0]是1x1卷积的输出通道数，c3[1]是3x3
+        c4,图(b)中第一条支路1x1卷积的输出通道数，数据类型是整数
+        '''
+        super(Inception, self).__init__()
+        # 依次创建Inception块每条支路上使用到的操作
+        # 第一卷积层
+        self.p1_1 = Conv2D(in_channels=c0,out_channels=c1, kernel_size=1)
+        # 第二卷积层
+        self.p2_1 = Conv2D(in_channels=c0,out_channels=c2[0], kernel_size=1)
+        self.p2_2 = Conv2D(in_channels=c2[0],out_channels=c2[1], kernel_size=3, padding=1)
+        # 第三卷积层
+        self.p3_1 = Conv2D(in_channels=c0,out_channels=c3[0], kernel_size=1)
+        self.p3_2 = Conv2D(in_channels=c3[0],out_channels=c3[1], kernel_size=5, padding=2)
+        # 第四卷积层
+        self.p4_1 = MaxPool2D(kernel_size=3, stride=1, padding=1)
+        self.p4_2 = Conv2D(in_channels=c0,out_channels=c4, kernel_size=1)
+
+    def forward(self, x):
+        # 支路1只包含一个1x1卷积
+        p1 = F.relu(self.p1_1(x))
+        # 支路2包含 1x1卷积 + 3x3卷积
+        p2 = F.relu(self.p2_2(F.relu(self.p2_1(x))))
+        # 支路3包含 1x1卷积 + 5x5卷积
+        p3 = F.relu(self.p3_2(F.relu(self.p3_1(x))))
+        # 支路4包含 最大池化和1x1卷积
+        p4 = F.relu(self.p4_2(self.p4_1(x)))
+        # 将每个支路的输出特征图拼接在一起作为最终的输出结果
+        return paddle.concat([p1, p2, p3, p4], axis=1)
