@@ -85,3 +85,4 @@ class LeNet(paddle.nn.Layer):
         x = self.layer4(x)
 
         return x
+模型链接：https://pic2.zhimg.com/v2-b902fa7714dadf0a31d0b0d2dd6c72fa_r.jpg?source=172ae18b
