@@ -23,15 +23,15 @@ data.dropna(inplace=True)
 
 # 4种预处理常用方法
 
-1. 0均值
+### 1. 0均值
 
-2. 归一化
+### 2. 归一化
 
 实现：
 
-### 数据归一化处理
-### 参数归一化函数
-### 归一化时，需要把Dataframe格式转换成ndarray格式；
+ 数据归一化处理
+ 参数归一化函数
+ 归一化时，需要把Dataframe格式转换成ndarray格式；
 
 class StandardScaler:
     
@@ -53,6 +53,6 @@ class StandardScaler:
             resX[:, col] = (X[:, col] - self.mean_[col]) / (self.scale_[col])
         return resX
 
-3. 主成分分析
+### 3. 主成分分析
 
-4. 白化
+### 4. 白化
