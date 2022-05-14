@@ -11,6 +11,7 @@
 3. 实现
 
 数据清洗=>数据集成=>数据规约=>数据变换
+
 ①数据清洗：填写缺失值，光滑噪声数据，识别或删除离群点，并解决不一致性来“清理数据”；
 data.dropna(inplace=True)
 
@@ -31,7 +32,9 @@ data.dropna(inplace=True)
 ### 数据归一化处理
 ### 参数归一化函数
 ### 归一化时，需要把Dataframe格式转换成ndarray格式；
+
 class StandardScaler:
+    
     def __init__(self):
         self.mean_ = None
         self.scale_ = None
