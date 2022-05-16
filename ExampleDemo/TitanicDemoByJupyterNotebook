@@ -1,0 +1,43 @@
+import pandas as pd
+
+# 导入数据集
+path = './titanic.csv'
+titanic = pd.read_csv(path)
+
+# 特征抽取
+x = titanic[["pclass","age","sex"]]
+y = titanic["survived"]
+
+# 缺失值填补
+x["age"].fillna(x["age"].mean(), inplace=True)
+
+# 转换成字典
+x = x.to_dict(orient="records")
+
+# 数据集划分
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=22)
+
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
+
+# 字典特征抽取
+transfer = DictVectorizer()
+x_train = transfer.fit_transform(x_train)
+x_test = transfer.transform(x_test)
+
+# 决策树预估器
+estimator = DecisionTreeClassifier(criterion="entropy")
+estimator.fit(x_train, y_train)
+
+y_predict = estimator.predict(x_test)
+
+print("y_predict:\n", y_predict)
+
+print("直接比对真实值和预测值：\n", y_test == y_predict)
+
+score = estimator.score(x_test, y_test)
+
+print("准确率为:\n", score)
+
+export_graphviz(estimator, out_file="titanic_tree.dot", feature_names=transfer.get_feature_names())
