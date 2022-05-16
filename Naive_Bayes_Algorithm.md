@@ -28,15 +28,14 @@
 
 5. 拉普拉斯平滑系数： P(F1|C) = (N + a) / (N + am)
 
-sklearn.naive_bayes.MultinomialNB(alpha = 1.0)
+	sklearn.naive_bayes.MultinomialNB(alpha = 1.0)
 
 	朴素贝叶斯分类
   
 	alpha：拉普拉斯平滑系数
 
 6.总结：
-	点：
-  
+
 		朴素贝叶斯模型发源于古典数学理论，有稳定的分类效率
     
 		对缺失数据不太敏感，算法也比较简单，常用于分本分类
