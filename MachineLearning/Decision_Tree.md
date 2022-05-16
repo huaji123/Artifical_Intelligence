@@ -1,5 +1,8 @@
 # Decision Tree 决策树
 
+
+from sklearn.tree import DecisionTreeClassifier
+
 1. 定义：是一种描述对实例进行分类的树形结构。由结点（内部节点【一个特征或属性】、叶节点【一个类】）和有向边组成。
 
 2. 流程步骤：特征选择、决策树的生成、决策树的修剪
