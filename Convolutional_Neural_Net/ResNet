@@ -1,0 +1,183 @@
+import paddle
+from paddle import nn
+
+
+# 定义卷积块
+class ConvBNLayer(nn.Layer):
+    def __init__(self,
+                 num_channels,
+                 num_filters,
+                 filter_size,
+                 stride=1,
+                 groups=1,
+                 act='relu'):
+        super(ConvBNLayer, self).__init__()
+        self._conv = nn.Conv2D(
+            in_channels=num_channels,
+            out_channels=num_filters,
+            kernel_size=filter_size,
+            stride=stride,
+            # 确保下采样和尺寸不变
+            padding=(filter_size - 1) // 2,
+            groups=groups,
+            bias_attr=False,
+        )
+        x = self._batch_norm = nn.BatchNorm2D(num_filters)
+        self.act = act
+
+    def forward(self, inputs):
+        x = self._conv(inputs)
+        x = self._batch_norm(x)
+        if self.act == 'leaky':
+            x = nn.functional.leaky_relu(x=x, negative_slope=0.1)
+        elif self.act == 'relu':
+            x = nn.functional.relu(x=x)
+        return x
+
+
+# 定义残差块
+# 每个残差块会对输入图片做三次卷积，然后跟输入图片进行短接
+# 如果残差块钟第三次卷积输出特征图的形状和输入不一致，则对输入图片做1x1卷积，将其输出形状调整为一致
+
+class BottleneckBlock(nn.Layer):
+    def __init__(self, num_channels, num_filters,
+                 stride=1, shortcut=True, version='0'):
+        super(BottleneckBlock, self).__init__()
+
+        # 预留建立空字典，便于后续选择不同版本
+        pathA_dict = {}
+        pathB_dict = {}
+
+        # 初始版本
+        pathA_default = nn.Sequential(
+            ConvBNLayer(num_channels=num_channels, num_filters=num_filters, filter_size=1, stride=stride, ),
+            ConvBNLayer(num_channels=num_channels, num_filters=num_filters, filter_size=3, ),
+            ConvBNLayer(num_channels=num_channels, num_filters=num_filters * 4, filter_size=1, act='None'),
+        )
+
+        pathB_default = nn.Sequential(
+            ConvBNLayer(num_channels=num_channels, num_filters=num_filters * 4, filter_size=1, stride=stride,
+                        act='None')
+        )
+
+        # ResNet-B
+        pathA_tweak = nn.Sequential(
+            ConvBNLayer(num_channels=num_channels, num_filters=num_filters, filter_size=1, ),
+            ConvBNLayer(num_channels=num_filters, num_filters=num_filters, filter_size=3, stride=stride, ),
+            ConvBNLayer(num_channels=num_filters, num_filters=num_filters * 4, filter_size=1, ),
+        )
+        pathA_dict['B'] = pathA_tweak
+
+        # ResNet_D
+        pathB_tweak = nn.Sequential(
+            nn.AvgPool2D(kernel_size=stride, stride=stride),
+            ConvBNLayer(num_channels=num_channels, num_filters=num_filters * 4, filter_size=1),
+        )
+
+        pathB_dict['D'] = pathB_tweak
+        pathA_dict['D'] = pathA_tweak
+
+        self.shortcut = shortcut
+        self.pathA = pathA_dict.get(version, pathA_default)
+        self.pathB = pathB_dict.get(version, pathB_default)
+        self._num_channels_out = num_filters * 4
+
+    def forward(self, inputs):
+        pathA = self.pathA(inputs)
+        if self.shortcut:
+            pathB = inputs
+        else:
+            pathB = self.pathB(inputs)
+        output = paddle.add(x=pathA, y=pathB)
+        output = nn.functional.relu(output)
+        return output
+
+
+# 定义ResNet模型
+class ResNet(nn.Layer):
+    def __init__(self, layers=50, class_dim=10, version='0'):
+        '''
+        :param layers:网络层数，可选:50，101，152
+        :param class_dim: 分类标签的类别数
+        :param version:
+        '''
+        super(ResNet, self).__init__()
+        self.version = version
+        self.layers = layers
+        self.max_accuracy = 0.0
+
+        supported_layers = [50, 101, 152]
+        assert layers in supported_layers, \
+            "supproted layers are {} but input layer is {}".format(supported_layers, layers)
+        # ResNet50包含的stage1-4模块分别包含3，4，6，3个残差块
+        if layers == 50:
+            depth = [3, 4, 6, 3]
+        # ResNet50包含的stage1-4模块分别包含3，4，23，3个残差块
+        if layers == 101:
+            depth = [3, 4, 23, 3]
+        # ResNet50包含的stage1-4模块分别包含3，4，36，3个残差块
+        if layers == 152:
+            depth = [3, 8, 36, 3]
+        # stage1-4所使用的残差块的输出通道数
+        num_filters = [64, 128, 256, 512]
+
+        # input stem模块，默认版本:64个7x7的卷积加上一个3x3的最大池化，步长均为2
+        input_stem_dict = {}
+        input_stem_default = nn.Sequential(
+            ConvBNLayer(num_channels=3, num_filters=64, filter_size=7, stride=2, ),
+            nn.MaxPool2D(kernel_size=3, stride=2, padding=1)
+        )
+
+        # C版本修改
+        input_stem_tweak = nn.Sequential(
+            ConvBNLayer(num_channels=3, num_filters=64, filter_size=3, stride=2, ),
+            ConvBNLayer(num_channels=64, num_filters=64, filter_size=3, ),
+            ConvBNLayer(num_channels=64, num_filters=64, filter_size=3, ),
+            nn.MaxPool2D(kernel_size=3, stride=2, padding=1, ),
+        )
+        input_stem_dict['C'] = input_stem_tweak
+
+        self.input_stem = input_stem_dict.get(version, input_stem_default)
+
+        # stage1-4模块，使用各个残差块进行卷积操作
+        self.bottleneck_block_list = []
+        num_channels = 64
+        for block in range(len(depth)):
+            shortcut = False
+            for i in range(depth[block]):
+                bottleneck_block = self.add_sublayer(
+                    'bb_%d_%d' % (block, i),
+                    BottleneckBlock(
+                        num_channels=num_channels,
+                        num_filters=num_filters[block],
+                        stride=2 if i == 0 and block != 0 else 1,
+                        shortcut=shortcut,
+                        version=version
+                    )
+                )
+                num_channels = bottleneck_block._num_channels_out
+                self.bottleneck_block_list.append(bottleneck_block)
+                shortcut = True
+
+        # 在stage4的输出特征图上使用全局池化
+        self.pool2d_avg = nn.AdaptiveAvgPool2D(output_size=1)
+
+        # stdv用来作为全脸阶层随机初始化参数的方差
+        import math
+        # 标准差
+        stdv = 1.0 / math.sqrt(2048 * 1.0)
+
+        # 创建全连接层，输出大小为类别数目，经过残差网络的卷积核全局池化后，
+        # 卷积特征的维度是[B,2048,1,1]，故最后一层全连接层的输入维度是2048
+        self.out = nn.Linear(in_features=2048, out_features=class_dim,
+                             weight_attr=paddle.ParamAttr(
+                                 initializer=paddle.nn.initializer.Uniform(-stdv, stdv)))
+
+    def forward(self, inputs):
+        x = self.input_stem(inputs)
+        for bottleneck_block in self.bottleneck_block_list:
+            x = bottleneck_block(x)
+        x = self.pool2d_avg(x)
+        x = paddle.reshape(x, [x.shape[0], -1])
+        x = self.out(x)
+        return x
