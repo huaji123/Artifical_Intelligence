@@ -35,11 +35,11 @@
 
 ### DeepLabv3+ 介绍
 
-DeepLabv3+是DeepLab语义分割系列网络的最新作，其前作有 DeepLabv1，DeepLabv2, DeepLabv3, 在最新作中，DeepLab的作者通过encoder-decoder进行多尺度信息的融合，同时保留了原来的空洞卷积和ASSP层， 其骨干网络使用了Xception模型，提高了语义分割的健壮性和运行速率，在 PASCAL VOC 2012 dataset取得新的state-of-art performance，89.0mIOU。
+      DeepLabv3+是DeepLab语义分割系列网络的最新作，其前作有 DeepLabv1，DeepLabv2, DeepLabv3, 在最新作中，DeepLab的作者通过encoder-decoder进行多尺度信息的融合，同时保留了原来的空洞卷积和ASSP层， 其骨干网络使用了Xception模型，提高了语义分割的健壮性和运行速率，在 PASCAL VOC 2012 dataset取得新的state-of-art performance，89.0mIOU。
 
 ### Xception
 
-Xception是DeepLabv3+原始实现的backbone网络，兼顾了精度和性能，适用于服务端部署。
+      Xception是DeepLabv3+原始实现的backbone网络，兼顾了精度和性能，适用于服务端部署。
 
 ## step3 预训练模型下载
 
